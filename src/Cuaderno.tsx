@@ -1,13 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { cambiarDominio, errorSimbolo, leerDominio, recuperarConfiguracion, tuplaEn, validarConfiguracion } from './modelo';
 import type { Configuracion, Simbolo } from './modelo';
+import { analizarFormula } from './analizador';
+import type { Formula, Termino } from './analizador';
 
 const claveGuardado = 'cuaderno-logica-v1';
 const capitulos = ['Lenguaje', 'Interpretación', 'Evaluación'];
 
 function leerGuardado(clave: string) {
   try { return localStorage.getItem(clave); } catch { return null; }
+}
+
+function Rama({ nodo }: { nodo: Formula | Termino }) {
+  let etiqueta: string;
+  let hijos: (Formula | Termino)[] = [];
+  switch (nodo.tipo) {
+    case 'variable': etiqueta = nodo.nombre; break;
+    case 'funcion':
+    case 'predicado': etiqueta = `${nodo.nombre} / ${nodo.argumentos.length}`; hijos = nodo.argumentos; break;
+    case 'negacion': etiqueta = '¬'; hijos = [nodo.formula]; break;
+    case 'cuantificador': etiqueta = `${nodo.cuantificador}${nodo.variable}`; hijos = [nodo.formula]; break;
+    case 'conectivo': etiqueta = nodo.conectivo; hijos = [nodo.izquierda, nodo.derecha]; break;
+  }
+  return <li><span>{etiqueta}</span>{hijos.length > 0 && <ul>{hijos.map((hijo, indice) => <Rama key={indice} nodo={hijo} />)}</ul>}</li>;
 }
 
 export default function Cuaderno() {
@@ -33,6 +49,9 @@ export default function Cuaderno() {
   const total = simbolo ? configuracion.dominio.length ** simbolo.aridad : 0;
   const tablaManejable = Number.isSafeInteger(total);
   const inicio = paginaTabla * 8;
+  const analisis = useMemo(() => analizarFormula(configuracion.formula, configuracion.simbolos), [configuracion.formula, configuracion.simbolos]);
+  const libres = analisis.valido ? analisis.variablesLibres : [];
+  const faltantes = libres.filter(nombreVariable => !Object.hasOwn(configuracion.entorno, nombreVariable) || !configuracion.dominio.includes(configuracion.entorno[nombreVariable]));
 
   useEffect(() => {
     try {
@@ -106,6 +125,19 @@ export default function Cuaderno() {
     fijarErrorEntorno('');
   }
 
+  function asignarVariable(nombreVariable: string, valorAsignado: string) {
+    const entorno = { ...configuracion.entorno };
+    if (valorAsignado) entorno[nombreVariable] = valorAsignado;
+    else delete entorno[nombreVariable];
+    actualizar({ entorno });
+  }
+
+  function revisarError() {
+    if (analisis.valido) return;
+    editor.current?.focus();
+    editor.current?.setSelectionRange(analisis.error.inicio, analisis.error.fin);
+  }
+
   return (
     <div className="escritorio">
       <header className="cabecera">
@@ -156,13 +188,17 @@ export default function Cuaderno() {
 
             {capitulo === 2 && <>
               <p className="anotacion">Capítulo tres</p><h1>Hagamos<br />una pregunta.</h1>
-              <label className="editor-formula">Mi fórmula<textarea ref={editor} value={configuracion.formula} onChange={evento => actualizar({ formula: evento.target.value })} rows={2} spellCheck={false} placeholder="Escribe aquí tu fórmula…" /></label>
-              <div className="teclado" aria-label="Insertar símbolo lógico">{['¬', '∧', '∨', '→', '∀', '∃', '(', ')'].map(signo => <button key={signo} onClick={() => insertar(signo)} aria-label={`Insertar ${signo}`}>{signo}</button>)}</div>
-              <p className="nota-lapiz">Puedes escribir con el teclado o insertar símbolos con los botones.</p>
-              <h2 className="titulo-entorno">Valores de las variables</h2><p className="ayuda">Asigna valores manualmente. La detección de variables libres estará disponible con el analizador.</p>
+              <label className="editor-formula">Mi fórmula<textarea ref={editor} value={configuracion.formula} onChange={evento => actualizar({ formula: evento.target.value })} rows={2} spellCheck={false} placeholder="Escribe aquí tu fórmula…" aria-invalid={!analisis.valido} aria-describedby="estado-sintaxis" /></label>
+              <div className="teclado" aria-label="Insertar símbolo lógico">{['¬', '∧', '∨', '→', '↔', '∀', '∃', '(', ')'].map(signo => <button key={signo} onClick={() => insertar(signo)} aria-label={`Insertar ${signo}`}>{signo}</button>)}</div>
+              <div id="estado-sintaxis" aria-live="polite">{analisis.valido ? <p className="nota-lapiz">Sintaxis correcta ✓ · Fórmula {libres.length ? 'abierta' : 'cerrada'}.</p> : <><p className="error">{analisis.error.mensaje} Posición {analisis.error.inicio + 1}.</p><button className="enlace-error" onClick={revisarError}>Revisar en la fórmula ↗</button></>}</div>
+              <details className="ayuda-sintaxis"><summary>Cómo se agrupa la fórmula</summary><p className="ayuda">Primero ¬ y los cuantificadores; después ∧, ∨, → y ↔. La implicación agrupa de derecha a izquierda. Usa ∀x (P(x,y) → P(y,x)) para ampliar el alcance del cuantificador. También puedes escribir -&gt; y &lt;-&gt;.</p></details>
+              <h2 className="titulo-entorno">Valores de las variables</h2>
+              {analisis.valido ? libres.length ? <><p className="ayuda">Variables libres: {libres.join(', ')}. Asígnales un elemento de D.</p><div className="variables-libres">{libres.map(nombreVariable => <label key={nombreVariable}>{nombreVariable} ∈ D<select aria-label={`Valor de ${nombreVariable}`} value={Object.hasOwn(configuracion.entorno, nombreVariable) ? configuracion.entorno[nombreVariable] : ''} onChange={evento => asignarVariable(nombreVariable, evento.target.value)}><option value="">Sin asignar</option>{configuracion.dominio.map(elemento => <option key={elemento}>{elemento}</option>)}</select></label>)}</div><p className="ayuda" aria-live="polite">{faltantes.length ? `Falta asignar: ${faltantes.join(', ')}.` : 'Todas las variables libres tienen un valor. ✓'}</p></> : <p className="nota-lapiz">No hay variables libres. Esta fórmula no necesita un entorno.</p> : <p className="ayuda">Corrige la fórmula para identificar sus variables libres.</p>}
+              <details className="asignaciones-adicionales"><summary>Otras asignaciones (opcional)</summary>
               <form onSubmit={agregarAsignacion} className="formulario-entorno"><label>Variable<input value={variable} onChange={evento => fijarVariable(evento.target.value)} placeholder="x" required /></label><label>Valor<select value={valor} onChange={evento => fijarValor(evento.target.value)}>{configuracion.dominio.map(elemento => <option key={elemento}>{elemento}</option>)}</select></label><button aria-label="Añadir asignación" className="boton-pequeno">+</button></form>
               {errorEntorno && <p className="error" role="alert">{errorEntorno}</p>}
               <ul className="asignaciones">{Object.entries(configuracion.entorno).map(([nombreVariable, valorAsignado]) => <li key={nombreVariable}>{nombreVariable} ↦ {valorAsignado}<button aria-label={`Eliminar asignación de ${nombreVariable}`} onClick={() => actualizar({ entorno: Object.fromEntries(Object.entries(configuracion.entorno).filter(([clave]) => clave !== nombreVariable)) })}>×</button></li>)}</ul>
+              </details>
             </>}
 
             <span className="numero-pagina">{capitulo * 2 + 1}</span>
@@ -200,12 +236,12 @@ export default function Cuaderno() {
             </>}
 
             {capitulo === 2 && <>
-              <p className="anotacion">La comprobación</p><h2 className="titulo-grande">Aquí escribiremos<br />las razones.</h2>
-              <div className="resultado-pendiente"><span aria-hidden="true">∴</span><p>Una respuesta necesita<br />una explicación.</p></div>
-              <p className="manuscrito">Un testigo si existe.<br />Un contraejemplo si falla.<br />Todos los casos si hace falta.</p>
+              <p className="anotacion">El análisis</p><h2 className="titulo-grande">{analisis.valido ? <>La pregunta está<br />bien escrita.</> : <>Revisemos<br />la pregunta.</>}</h2>
+              {analisis.valido ? <><p className="manuscrito">{libres.length ? `Variables libres: ${libres.join(', ')}.` : 'Todas las variables están ligadas.'}<br />La estructura está lista.</p><details className="arbol-sintactico"><summary>Ver árbol sintáctico</summary><ul aria-label="Árbol sintáctico"><Rama nodo={analisis.arbol} /></ul></details></> : <p className="manuscrito">Corrige el error de la otra página.<br />Después veremos su estructura.</p>}
               <div className="recuadro-manual"><p>{errores.length ? 'Tu interpretación tiene datos pendientes.' : 'Tu interpretación está completa. ✓'}</p></div>
+              {analisis.valido && faltantes.length > 0 && <p className="ayuda">Antes de evaluar, falta asignar: {faltantes.join(', ')}.</p>}
               <button className="boton-tinta" disabled aria-describedby="estado-evaluacion">Comprobar →</button>
-              <p className="ayuda" id="estado-evaluacion">Disponible al integrar el analizador y el evaluador. Esta primera parte guarda tus fórmulas y asignaciones; todavía no calcula valores de verdad.</p>
+              <p className="ayuda" id="estado-evaluacion">La fórmula ya puede analizarse. El valor de verdad y su explicación estarán disponibles al integrar el evaluador de la parte 3.</p>
             </>}
 
             <span className="numero-pagina">{capitulo * 2 + 2}</span>
@@ -214,7 +250,7 @@ export default function Cuaderno() {
       </main>
 
       <nav className="cambio-pagina" aria-label="Cambiar páginas"><button disabled={capitulo === 0} onClick={() => fijarCapitulo(capitulo - 1)}>← Anterior</button><span aria-live="polite">Páginas {capitulo * 2 + 1}–{capitulo * 2 + 2} de 6</span><button disabled={capitulo === 2} onClick={() => fijarCapitulo(capitulo + 1)}>Siguiente →</button></nav>
-      <footer>{guardado ? 'Guardado en este navegador' : 'No se pudo guardar en este navegador. Mantén abierta la página para conservar tus cambios.'}<span>Interfaz y configuración · Parte 1 de 3</span></footer>
+      <footer>{guardado ? 'Guardado en este navegador' : 'No se pudo guardar en este navegador. Mantén abierta la página para conservar tus cambios.'}<span>Interfaz y análisis · Partes 1 y 2 de 3</span></footer>
     </div>
   );
 }

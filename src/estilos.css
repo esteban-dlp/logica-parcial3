@@ -121,6 +121,15 @@ h1, .titulo-grande { font: 600 43px/1.02 'Caveat', cursive; letter-spacing: -.6p
 .asignaciones { display: flex; flex-wrap: wrap; gap: 12px; padding: 0; list-style: none; }
 .asignaciones li { display: flex; align-items: center; gap: 15px; background: var(--papel); border-bottom: 1px solid var(--renglon); padding: 4px 0; font-size: 21px; overflow-wrap: anywhere; }
 .asignaciones button { color: var(--rojo); font-size: 23px; }
+.enlace-error { color: var(--rojo); padding: 0; font-size: 17px; text-decoration: underline; }
+.ayuda-sintaxis, .asignaciones-adicionales { font-size: 16px; color: var(--lapiz); margin-top: 17px; }
+.variables-libres { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 18px; margin: 17px 0; }
+.arbol-sintactico { margin-top: 27px; font-size: 22px; }
+.arbol-sintactico ul { list-style: none; padding-left: 19px; margin: 8px 0; }
+.arbol-sintactico > ul { padding-left: 0; }
+.arbol-sintactico ul ul { border-left: 1px solid var(--lapiz); }
+.arbol-sintactico li { padding-left: 9px; overflow-wrap: anywhere; }
+.arbol-sintactico li > span { background: var(--papel); }
 .resultado-pendiente { display: flex; gap: 22px; align-items: center; margin: 35px 0; font: 27px/1.2 'Caveat', cursive; color: var(--lapiz); }
 .resultado-pendiente > span { font-size: 55px; }
 .cambio-pagina { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 25px; font: 24px 'Caveat', cursive; }
