@@ -99,7 +99,7 @@ export default function Cuaderno() {
       fijarValor(dominio[0]);
       fijarPaginaTabla(0);
       fijarErrorDominio('');
-      fijarAvisoDominio('Dominio actualizado. Conservamos las asignaciones que siguen siendo válidas.');
+      fijarAvisoDominio('Dominio actualizado. Solo se conservan asignaciones válidas.');
     } catch (error) {
       fijarErrorDominio((error as Error).message);
       fijarAvisoDominio('');
@@ -150,7 +150,7 @@ export default function Cuaderno() {
   return (
     <div className="escritorio">
       <header className="cabecera">
-        <div><p className="etiqueta">MM3032 · Lógica matemática</p><p className="titulo-cuaderno">Mi cuaderno de lógica<span>.</span></p></div>
+        <div><p className="etiqueta">MM3032</p><p className="titulo-cuaderno">Cuaderno de lógica<span>.</span></p></div>
         <button className="boton-tema" onClick={() => fijarOscuro(!oscuro)} aria-label={oscuro ? 'Activar modo claro' : 'Activar modo oscuro'} aria-pressed={oscuro}>
           <span aria-hidden="true">{oscuro ? '☀' : '☾'}</span> <span>{oscuro ? 'Modo claro' : 'Modo oscuro'}</span>
         </button>
@@ -163,47 +163,45 @@ export default function Cuaderno() {
       <main className="cubierta">
         <div className="pliego" key={capitulo}>
           <article className="hoja izquierda" aria-label="Página izquierda">
-            <div className="encabezado-hoja"><span>Lógica matemática</span><span>Apuntes / 0{capitulo + 1}</span></div>
+            <div className="encabezado-hoja"><span>0{capitulo + 1}</span></div>
 
             {capitulo === 0 && <>
-              <p className="anotacion">Capítulo uno</p><h1>Las palabras de<br />nuestro lenguaje.</h1>
-              <p className="manuscrito">Antes de preguntar, definimos<br />qué símbolos podemos usar.</p>
+              <h1>Lenguaje</h1>
               <form className="formulario" onSubmit={agregarSimbolo}>
-                <label>Nombre del símbolo<input value={nombre} onChange={evento => fijarNombre(evento.target.value)} placeholder="Por ejemplo: Q" required autoComplete="off" /></label>
+                <label>Símbolo<input value={nombre} onChange={evento => fijarNombre(evento.target.value)} placeholder="Q" required autoComplete="off" /></label>
                 <div className="campos-juntos"><label>Tipo<select value={tipo} onChange={evento => fijarTipo(evento.target.value as Simbolo['tipo'])}><option value="predicado">Predicado</option><option value="funcion">Función</option></select></label>
                   <label>Aridad<input type="number" min="0" step="1" value={aridad} onChange={evento => fijarAridad(evento.target.value)} required /></label></div>
                 {errorLenguaje && <p className="error" role="alert">{errorLenguaje}</p>}
-                <button className="boton-tinta">Añadir al cuaderno +</button>
+                <button className="boton-tinta">Añadir +</button>
               </form>
-              <p className="nota-lapiz">Aridad = número de argumentos.<br />Una función de aridad 0 es una constante.</p>
+              <p className="nota-lapiz">Aridad: número de argumentos.</p>
             </>}
 
             {capitulo === 1 && <>
-              <p className="anotacion">Capítulo dos</p><h1>Un pequeño<br />universo.</h1>
+              <h1>Dominio</h1>
               <form className="formulario" onSubmit={aplicarDominio}>
-                <label>Elementos del dominio D<textarea value={textoDominio} onChange={evento => fijarTextoDominio(evento.target.value)} rows={2} aria-describedby="ayuda-dominio" /></label>
-                <p className="ayuda" id="ayuda-dominio">Sepáralos con comas, punto y coma o saltos de línea. Cada elemento es un nombre, por ejemplo: 1, 2, 3.</p>
-                <button className="boton-tinta">Aplicar dominio →</button>
+                <label>Elementos de D<textarea value={textoDominio} onChange={evento => fijarTextoDominio(evento.target.value)} rows={2} aria-describedby="ayuda-dominio" /></label>
+                <p className="ayuda" id="ayuda-dominio">Separa con comas, ; o saltos de línea.</p>
+                <button className="boton-tinta">Aplicar →</button>
                 {errorDominio && <p className="error" role="alert">{errorDominio}</p>}
                 {avisoDominio && <p className="ayuda" role="status">{avisoDominio}</p>}
               </form>
               <p className="dominio-escrito">D = {'{'}{configuracion.dominio.join(', ')}{'}'}</p>
-              <label className="selector-simbolo">Ahora interpreta<select value={simbolo?.nombre || ''} disabled={!simbolo} onChange={evento => { fijarSeleccion(evento.target.value); fijarPaginaTabla(0); }}>
-                {!simbolo && <option value="">Primero declara un símbolo</option>}
+              <label className="selector-simbolo">Símbolo<select value={simbolo?.nombre || ''} disabled={!simbolo} onChange={evento => { fijarSeleccion(evento.target.value); fijarPaginaTabla(0); }}>
+                {!simbolo && <option value="">Sin símbolos</option>}
                 {configuracion.simbolos.map(elemento => <option key={elemento.nombre} value={elemento.nombre}>{elemento.nombre} · {elemento.tipo === 'funcion' ? 'Función' : 'Predicado'} / {elemento.aridad}</option>)}
               </select></label>
-              <p className="nota-lapiz">Una función necesita una salida para cada entrada. Una relación debe contener al menos una tupla.</p>
             </>}
 
             {capitulo === 2 && <>
-              <p className="anotacion">Capítulo tres</p><h1>Hagamos<br />una pregunta.</h1>
-              <label className="editor-formula">Mi fórmula<textarea ref={editor} value={configuracion.formula} onChange={evento => actualizar({ formula: evento.target.value })} rows={2} spellCheck={false} placeholder="Escribe aquí tu fórmula…" aria-invalid={!analisis.valido} aria-describedby="estado-sintaxis" /></label>
+              <h1>Fórmula</h1>
+              <div className="editor-formula"><textarea aria-label="Fórmula" ref={editor} value={configuracion.formula} onChange={evento => actualizar({ formula: evento.target.value })} rows={2} spellCheck={false} placeholder="∀x P(x,y)" aria-invalid={!analisis.valido} aria-describedby="estado-sintaxis" /></div>
               <div className="teclado" aria-label="Insertar símbolo lógico">{['¬', '∧', '∨', '→', '↔', '∀', '∃', '(', ')'].map(signo => <button key={signo} onClick={() => insertar(signo)} aria-label={`Insertar ${signo}`}>{signo}</button>)}</div>
-              <div id="estado-sintaxis" aria-live="polite">{analisis.valido ? <p className="nota-lapiz">Sintaxis correcta ✓ · Fórmula {libres.length ? 'abierta' : 'cerrada'}.</p> : <><p className="error">{analisis.error.mensaje} Posición {analisis.error.inicio + 1}.</p><button className="enlace-error" onClick={revisarError}>Revisar en la fórmula ↗</button></>}</div>
-              <details className="ayuda-sintaxis"><summary>Cómo se agrupa la fórmula</summary><p className="ayuda">Primero ¬ y los cuantificadores; después ∧, ∨, → y ↔. La implicación agrupa de derecha a izquierda. Usa ∀x (P(x,y) → P(y,x)) para ampliar el alcance del cuantificador. También puedes escribir -&gt; y &lt;-&gt;.</p></details>
-              <h2 className="titulo-entorno">Valores de las variables</h2>
-              {analisis.valido ? libres.length ? <><p className="ayuda">Variables libres: {libres.join(', ')}. Asígnales un elemento de D.</p><div className="variables-libres">{libres.map(nombreVariable => <label key={nombreVariable}>{nombreVariable} ∈ D<select aria-label={`Valor de ${nombreVariable}`} value={Object.hasOwn(configuracion.entorno, nombreVariable) ? configuracion.entorno[nombreVariable] : ''} onChange={evento => asignarVariable(nombreVariable, evento.target.value)}><option value="">Sin asignar</option>{configuracion.dominio.map(elemento => <option key={elemento}>{elemento}</option>)}</select></label>)}</div><p className="ayuda" aria-live="polite">{faltantes.length ? `Falta asignar: ${faltantes.join(', ')}.` : 'Todas las variables libres tienen un valor. ✓'}</p></> : <p className="nota-lapiz">No hay variables libres. Esta fórmula no necesita un entorno.</p> : <p className="ayuda">Corrige la fórmula para identificar sus variables libres.</p>}
-              <details className="asignaciones-adicionales"><summary>Otras asignaciones (opcional)</summary>
+              <div id="estado-sintaxis" aria-live="polite">{analisis.valido ? <p className="nota-lapiz">Fórmula {libres.length ? 'abierta' : 'cerrada'} ✓</p> : <><p className="error">{analisis.error.mensaje} Posición {analisis.error.inicio + 1}.</p><button className="enlace-error" onClick={revisarError}>Revisar error ↗</button></>}</div>
+              <details className="ayuda-sintaxis"><summary>Sintaxis</summary><p className="ayuda">Precedencia: ¬, ∀, ∃; ∧; ∨; →; ↔. Usa paréntesis para agrupar. → asocia por la derecha. Teclado: -&gt; y &lt;-&gt;.</p></details>
+              <h2 className="titulo-entorno">Entorno</h2>
+              {analisis.valido ? libres.length ? <><div className="variables-libres">{libres.map(nombreVariable => <label key={nombreVariable}>{nombreVariable} ∈ D<select aria-label={`Valor de ${nombreVariable}`} value={Object.hasOwn(configuracion.entorno, nombreVariable) ? configuracion.entorno[nombreVariable] : ''} onChange={evento => asignarVariable(nombreVariable, evento.target.value)}><option value="">Sin asignar</option>{configuracion.dominio.map(elemento => <option key={elemento}>{elemento}</option>)}</select></label>)}</div><p className="ayuda" aria-live="polite">{faltantes.length ? `Falta asignar: ${faltantes.join(', ')}.` : 'Entorno completo ✓'}</p></> : <p className="nota-lapiz">Sin variables libres.</p> : null}
+              <details className="asignaciones-adicionales"><summary>Otras asignaciones</summary>
               <form onSubmit={agregarAsignacion} className="formulario-entorno"><label>Variable<input value={variable} onChange={evento => fijarVariable(evento.target.value)} placeholder="x" required /></label><label>Valor<select value={valor} onChange={evento => fijarValor(evento.target.value)}>{configuracion.dominio.map(elemento => <option key={elemento}>{elemento}</option>)}</select></label><button aria-label="Añadir asignación" className="boton-pequeno">+</button></form>
               {errorEntorno && <p className="error" role="alert">{errorEntorno}</p>}
               <ul className="asignaciones">{Object.entries(configuracion.entorno).map(([nombreVariable, valorAsignado]) => <li key={nombreVariable}>{nombreVariable} ↦ {valorAsignado}<button aria-label={`Eliminar asignación de ${nombreVariable}`} onClick={() => actualizar({ entorno: Object.fromEntries(Object.entries(configuracion.entorno).filter(([clave]) => clave !== nombreVariable)) })}>×</button></li>)}</ul>
@@ -214,20 +212,18 @@ export default function Cuaderno() {
           </article>
 
           <article className="hoja derecha" aria-label="Página derecha">
-            <div className="encabezado-hoja"><span>Observar. Probar. Entender.</span><span>MM3032</span></div>
+            <div className="encabezado-hoja"><span>MM3032</span></div>
 
             {capitulo === 0 && <>
-              <p className="anotacion">Nuestro vocabulario</p><h2 className="titulo-grande">Todo comienza<br />con un símbolo.</h2>
-              {configuracion.simbolos.length ? <ul className="lista-simbolos">{configuracion.simbolos.map(elemento => <li key={elemento.nombre}><div><strong>{elemento.nombre}</strong><span>{elemento.tipo === 'funcion' ? 'Función' : 'Predicado'} · aridad {elemento.aridad}</span></div><button className="borrar" aria-label={`Eliminar símbolo ${elemento.nombre}`} onClick={() => { actualizar({ simbolos: configuracion.simbolos.filter(actual => actual.nombre !== elemento.nombre) }); fijarPaginaTabla(0); }}>×</button></li>)}</ul> : <p className="manuscrito">Aún no hay símbolos.<br />Añade el primero en la otra página.</p>}
-              <div className="recuadro-manual"><p>f(x) → un elemento<br />P(x, y) → verdadero o falso</p></div>
-              <p className="anotacion inclinada">Después les damos significado ↗</p>
-              <p className="ayuda">Para cambiar un nombre o una aridad, elimina el símbolo y decláralo de nuevo. Esto elimina su interpretación.</p>
+              <h2 className="titulo-grande">Símbolos</h2>
+              {configuracion.simbolos.length ? <ul className="lista-simbolos">{configuracion.simbolos.map(elemento => <li key={elemento.nombre}><div><strong>{elemento.nombre}</strong><span>{elemento.tipo === 'funcion' ? 'Función' : 'Predicado'} · aridad {elemento.aridad}</span></div><button className="borrar" aria-label={`Eliminar símbolo ${elemento.nombre}`} onClick={() => { actualizar({ simbolos: configuracion.simbolos.filter(actual => actual.nombre !== elemento.nombre) }); fijarPaginaTabla(0); }}>×</button></li>)}</ul> : <p className="manuscrito">Sin símbolos.</p>}
+              <p className="ayuda">Eliminar un símbolo borra su interpretación.</p>
             </>}
 
             {capitulo === 1 && <>
-              <p className="anotacion">La interpretación</p><h2 className="titulo-grande">{simbolo ? <>El significado<br />de {simbolo.nombre}.</> : <>Primero, un<br />símbolo.</>}</h2>
+              <h2 className="titulo-grande">{simbolo ? `${simbolo.nombre} / ${simbolo.aridad}` : 'Sin símbolos'}</h2>
               {simbolo && <>
-                <p className="ayuda">{simbolo.tipo === 'funcion' ? 'Selecciona una salida para cada entrada.' : 'Marca las tuplas que pertenecen a la relación.'}{simbolo.aridad === 0 && ' La tupla vacía se escribe ().'}</p>
+                <p className="ayuda">{simbolo.tipo === 'funcion' ? 'Asigna todas las salidas.' : 'Marca las tuplas de la relación.'}</p>
                 {!tablaManejable ? <p role="alert" className="error">Esta tabla supera el tamaño que puede mostrar el editor. Reduce la aridad o el dominio.</p> : <>
                   <table className="tabla-interpretacion"><thead><tr><th>Entrada</th><th>{simbolo.tipo === 'funcion' ? 'Salida' : 'Pertenece'}</th></tr></thead><tbody>
                     {Array.from({ length: Math.max(0, Math.min(8, total - inicio)) }, (_, desplazamiento) => {
@@ -238,28 +234,24 @@ export default function Cuaderno() {
                     })}
                   </tbody></table>
                   {total > 8 && <div className="paginacion-tabla"><button aria-label="Tuplas anteriores" disabled={paginaTabla === 0} onClick={() => fijarPaginaTabla(paginaTabla - 1)}>←</button><span>{inicio + 1}–{Math.min(inicio + 8, total)} de {total}</span><button aria-label="Tuplas siguientes" disabled={inicio + 8 >= total} onClick={() => fijarPaginaTabla(paginaTabla + 1)}>→</button></div>}
-                  <p className="nota-lapiz">{Object.keys(simbolo.tabla).length} de {total} {simbolo.tipo === 'funcion' ? 'salidas asignadas' : 'tuplas seleccionadas'}.</p>
+                  <p className="nota-lapiz">{Object.keys(simbolo.tabla).length}/{total} {simbolo.tipo === 'funcion' ? 'salidas' : 'tuplas'}.</p>
                 </>}
               </>}
-              <div className="estado-modelo" aria-live="polite"><h3>{errores.length ? 'Por completar…' : '¡El modelo está listo! ✓'}</h3>{errores.length > 0 && <ul>{errores.map((error, indice) => <li key={indice}>{error}</li>)}</ul>}</div>
+              <div className="estado-modelo" aria-live="polite"><h3>{errores.length ? 'Pendiente' : 'Modelo completo ✓'}</h3>{errores.length > 0 && <ul>{errores.map((error, indice) => <li key={indice}>{error}</li>)}</ul>}</div>
             </>}
 
             {capitulo === 2 && <>
-              <p className="anotacion">{resultado?.valido ? 'La comprobación' : 'El análisis'}</p>
               <div aria-live="polite">{resultado?.valido ? <>
                 <div className="veredicto"><h2>{resultado.paso.valor ? 'Verdadero' : 'Falso'}</h2><span aria-hidden="true">{resultado.paso.valor ? '✓' : '×'}</span></div>
                 <p className="razon-principal">{resultado.paso.razon}</p>
                 {resultado.paso.hijos.length > 0 && <ol className="pasos-evaluacion" aria-label="Pasos de la comprobación">{resultado.paso.hijos.map((paso, indice) => <DetallePaso key={indice} paso={paso} />)}</ol>}
               </> : <>
-                <h2 className="titulo-grande">{analisis.valido ? <>La pregunta está<br />bien escrita.</> : <>Revisemos<br />la pregunta.</>}</h2>
-                <p className="manuscrito">{analisis.valido ? libres.length ? `Variables libres: ${libres.join(', ')}.` : 'Todas las variables están ligadas.' : 'Corrige el error de la otra página.'}</p>
+                <h2 className="titulo-grande">Resultado</h2>
                 {resultado && !resultado.valido && <ul className="error" role="alert">{resultado.errores.map((error, indice) => <li key={indice}>{error}</li>)}</ul>}
               </>}</div>
-              {analisis.valido && <details className="arbol-sintactico"><summary>Ver árbol sintáctico</summary><ul aria-label="Árbol sintáctico"><Rama nodo={analisis.arbol} /></ul></details>}
-              {!resultado?.valido && <div className="recuadro-manual"><p>{errores.length ? 'Tu interpretación tiene datos pendientes.' : 'Tu interpretación está completa. ✓'}</p></div>}
-              {analisis.valido && faltantes.length > 0 && <p className="ayuda">Antes de evaluar, falta asignar: {faltantes.join(', ')}.</p>}
+              {analisis.valido && <details className="arbol-sintactico"><summary>Árbol sintáctico</summary><ul aria-label="Árbol sintáctico"><Rama nodo={analisis.arbol} /></ul></details>}
               <button className="boton-tinta comprobar" disabled={!puedeEvaluar} aria-describedby="estado-evaluacion" onClick={() => fijarEvaluacion({ entrada: configuracion, resultado: evaluarFormula(configuracion) })}>Comprobar →</button>
-              <p className="ayuda" id="estado-evaluacion">{!analisis.valido ? 'Corrige la sintaxis antes de evaluar.' : errores.length ? 'Completa o corrige los datos en Interpretación antes de evaluar.' : faltantes.length ? 'Asigna un valor a todas las variables libres antes de evaluar.' : 'Evalúa la fórmula con el modelo y las asignaciones actuales.'}</p>
+              <p className="ayuda" id="estado-evaluacion">{!analisis.valido ? 'Corrige la fórmula.' : errores.length ? 'Completa la interpretación.' : faltantes.length ? 'Asigna las variables libres.' : ''}</p>
             </>}
 
             <span className="numero-pagina">{capitulo * 2 + 2}</span>
@@ -268,7 +260,7 @@ export default function Cuaderno() {
       </main>
 
       <nav className="cambio-pagina" aria-label="Cambiar páginas"><button disabled={capitulo === 0} onClick={() => fijarCapitulo(capitulo - 1)}>← Anterior</button><span aria-live="polite">Páginas {capitulo * 2 + 1}–{capitulo * 2 + 2} de 6</span><button disabled={capitulo === 2} onClick={() => fijarCapitulo(capitulo + 1)}>Siguiente →</button></nav>
-      <footer>{guardado ? 'Guardado en este navegador' : 'No se pudo guardar en este navegador. Mantén abierta la página para conservar tus cambios.'}<span>Lenguaje, interpretación y evaluación · MM3032</span></footer>
+      <footer>{guardado ? 'Guardado local' : 'No se pudo guardar. Mantén esta página abierta.'}</footer>
     </div>
   );
 }
