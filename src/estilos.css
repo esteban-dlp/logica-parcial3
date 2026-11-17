@@ -111,10 +111,25 @@ h1, .titulo-grande { font: 600 43px/1.02 'Caveat', cursive; letter-spacing: -.6p
 .estado-modelo h3 { font: 26px 'Caveat', cursive; color: var(--rojo); }
 .estado-modelo ul { font: 12px/1.7 system-ui, sans-serif; padding-left: 18px; color: var(--lapiz); }
 .estado-modelo li + li { margin-top: 6px; }
-.editor-formula { margin-top: 28px; }
-.editor-formula textarea { font: 33px/1.5 'Caveat', 'Patrick Hand', cursive; color: var(--tinta); min-height: 85px; border-bottom: 2px solid var(--tinta); background: transparent; }
+.referencia-lenguaje { margin-top: 22px; padding: 12px 15px; border: 1px solid var(--renglon); border-radius: 4px 7px 5px 6px; background: var(--papel); overflow-wrap: anywhere; }
+.referencia-lenguaje h2 { font: 25px 'Caveat', cursive; margin-bottom: 5px; }
+.referencia-lenguaje p:not(.ayuda) { font: 13px/1.6 system-ui, sans-serif; margin: 4px 0; }
+.referencia-lenguaje .ayuda { margin-bottom: 0; }
+.editor-formula { margin-top: 28px; position: relative; }
+.editor-formula textarea, .resaltado-formula { font: 33px/1.5 'Caveat', 'Patrick Hand', cursive; letter-spacing: normal; padding: 5px 2px; white-space: pre-wrap; overflow-wrap: break-word; }
+.editor-formula textarea { display: block; position: relative; color: var(--tinta); min-height: 85px; border-bottom: 2px solid var(--tinta); background: transparent; }
+.resaltado-formula { position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: transparent; border-bottom: 2px solid transparent; }
+.resaltado-formula mark { color: transparent; background: #f5b5a0a6; border-bottom: 2px solid var(--rojo); }
+.resaltado-formula .error-insercion { display: inline; border-left: 2px solid var(--rojo); border-bottom: 0; }
+.estado-valido { font: 18px 'Caveat', cursive; color: var(--lapiz); margin: 6px 0; }
 .teclado { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 12px; }
 .teclado button { border: 1px solid var(--renglon); border-radius: 4px 6px 4px 5px; background: var(--papel); font-size: 21px; min-width: 32px; min-height: 33px; }
+.sugerencias { margin-top: 14px; font: 12px/1.5 system-ui, sans-serif; color: var(--lapiz); }
+.sugerencias > div { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.sugerencias button, .ejemplos button { border: 1px solid var(--renglon); border-radius: 4px; padding: 4px 9px; background: var(--papel); color: var(--tinta); }
+.sugerencias small { color: var(--lapiz); }
+.ejemplos { margin-top: 16px; color: var(--lapiz); }
+.ejemplos button { display: block; margin: 6px 0; }
 .titulo-entorno { font: 29px 'Caveat', cursive; margin-top: 26px; }
 .formulario-entorno { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 15px; margin: 18px 0; }
 .boton-pequeno { border: 1px solid var(--tinta); border-radius: 4px; width: 34px; min-height: 36px; font-size: 25px; background: var(--papel); }

@@ -73,6 +73,21 @@ export function analizarFormula(texto: string, simbolos: Simbolo[]): ResultadoAn
   try {
     const fichas = separar(texto);
     const lenguaje = new Map(simbolos.map(simbolo => [simbolo.nombre, simbolo]));
+    // Tras un cuantificador, separa una variable del predicado declarado pegado a ella.
+    for (let i = 0; i < fichas.length - 1; i++) {
+      if (fichas[i].texto !== '∀' && fichas[i].texto !== '∃') continue;
+      const ficha = fichas[i + 1];
+      const candidatos = simbolos.filter(s => s.tipo === 'predicado' && ficha.texto.endsWith(s.nombre)
+        && ficha.texto.length > s.nombre.length
+        && (fichas[i + 2]?.texto === '(' || s.aridad === 0)
+        && /^[A-Za-z][A-Za-z0-9_]*$/.test(ficha.texto.slice(0, -s.nombre.length)));
+      if (candidatos.length > 1) throw new ErrorSintaxis('Esta expresión puede separarse de varias formas. Añade un espacio entre la variable y el predicado.', ficha);
+      if (candidatos.length === 1) {
+        const corte = ficha.texto.length - candidatos[0].nombre.length;
+        fichas.splice(i + 1, 1, { texto: ficha.texto.slice(0, corte), inicio: ficha.inicio, fin: ficha.inicio + corte },
+          { texto: ficha.texto.slice(corte), inicio: ficha.inicio + corte, fin: ficha.fin });
+      }
+    }
     const precedencia: Record<string, number> = { '↔': 1, '→': 2, '∨': 3, '∧': 4 };
     let posicion = 0;
     const actual = () => fichas[posicion];
@@ -99,7 +114,10 @@ export function analizarFormula(texto: string, simbolos: Simbolo[]): ResultadoAn
         }
         consumir(')');
       }
-      if (lista.length !== simbolo.aridad) throw new ErrorSintaxis(`${simbolo.nombre} necesita ${simbolo.aridad} argumentos; recibió ${lista.length}.`, ficha);
+      if (lista.length !== simbolo.aridad) {
+        const ejemplo = simbolo.aridad === 0 ? simbolo.nombre : simbolo.aridad <= 10 ? `${simbolo.nombre}(${Array.from({ length: simbolo.aridad }, (_, i) => `x${i + 1}`).join(',')})` : `${simbolo.nombre}(...)`;
+        throw new ErrorSintaxis(`${simbolo.nombre} necesita ${simbolo.aridad} argumentos; recibió ${lista.length}. Por ejemplo: ${ejemplo}.`, ficha);
+      }
       return lista;
     }
 

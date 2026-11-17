@@ -19,6 +19,17 @@ function analizar(texto: string) {
   return resultado;
 }
 
+test('separa un predicado declarado pegado a la variable cuantificada', () => {
+  assert.deepEqual(analizar('∀xQ(x)').arbol, analizar('∀x Q(x)').arbol);
+  assert.deepEqual(analizar('∀x∃yP(x,y)').arbol, analizar('∀x ∃y P(x,y)').arbol);
+});
+
+test('pide separación cuando hay varias divisiones posibles', () => {
+  const resultado = analizarFormula('∀xyQ(x)', [...simbolos, { nombre: 'yQ', tipo: 'predicado', aridad: 1, tabla: {} }]);
+  assert.equal(resultado.valido, false);
+  if (!resultado.valido) assert.match(resultado.error.mensaje, /varias formas/);
+});
+
 test('construye el arbol del ejemplo inicial y detecta que es cerrado', () => {
   const resultado = analizar(configuracionInicial.formula);
   assert.deepEqual(resultado.variablesLibres, []);

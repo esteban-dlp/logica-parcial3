@@ -51,6 +51,7 @@ export default function Cuaderno() {
   const [errorEntorno, fijarErrorEntorno] = useState('');
   const [evaluacion, fijarEvaluacion] = useState<{ entrada: Configuracion; resultado: ResultadoEvaluacion } | null>(null);
   const editor = useRef<HTMLTextAreaElement>(null);
+  const resaltado = useRef<HTMLDivElement>(null);
   const errores = validarConfiguracion(configuracion);
   const simbolo = configuracion.simbolos.find(elemento => elemento.nombre === seleccion) || configuracion.simbolos[0];
   const total = simbolo ? configuracion.dominio.length ** simbolo.aridad : 0;
@@ -120,6 +121,16 @@ export default function Cuaderno() {
     const posicion = campo.selectionStart;
     actualizar({ formula: configuracion.formula.slice(0, posicion) + signo + configuracion.formula.slice(campo.selectionEnd) });
     requestAnimationFrame(() => { campo.focus(); campo.setSelectionRange(posicion + signo.length, posicion + signo.length); });
+  }
+
+  function insertarSimbolo(elemento: Simbolo) {
+    const campo = editor.current;
+    if (!campo) return;
+    const inicio = campo.selectionStart;
+    const texto = elemento.aridad ? `${elemento.nombre}()` : elemento.nombre;
+    actualizar({ formula: configuracion.formula.slice(0, inicio) + texto + configuracion.formula.slice(campo.selectionEnd) });
+    const cursor = inicio + texto.length - (elemento.aridad ? 1 : 0);
+    requestAnimationFrame(() => { campo.focus(); campo.setSelectionRange(cursor, cursor); });
   }
 
   function agregarAsignacion(evento: FormEvent) {
@@ -195,9 +206,31 @@ export default function Cuaderno() {
 
             {capitulo === 2 && <>
               <h1>Fórmula</h1>
-              <div className="editor-formula"><textarea aria-label="Fórmula" ref={editor} value={configuracion.formula} onChange={evento => actualizar({ formula: evento.target.value })} rows={2} spellCheck={false} placeholder="∀x P(x,y)" aria-invalid={!analisis.valido} aria-describedby="estado-sintaxis" /></div>
+              <section className="referencia-lenguaje" aria-label="Referencia del lenguaje y dominio">
+                <h2>Tu lenguaje</h2>
+                <p><strong>Dominio:</strong> {'{'}{configuracion.dominio.join(', ')}{'}'}</p>
+                {(['predicado', 'funcion'] as const).map(tipoSimbolo => {
+                  const disponibles = configuracion.simbolos.filter(elemento => elemento.tipo === tipoSimbolo);
+                  return <p key={tipoSimbolo}><strong>{tipoSimbolo === 'predicado' ? 'Predicados' : 'Funciones'}:</strong>{' '}
+                    {disponibles.length ? disponibles.map(elemento => `${elemento.nombre} (aridad ${elemento.aridad})`).join(' · ') : 'ninguno'}
+                  </p>;
+                })}
+                <p className="ayuda">Consulta Interpretación para ver los valores y las relaciones.</p>
+              </section>
+              <div className="editor-formula">
+                <div className="resaltado-formula" ref={resaltado} aria-hidden="true"><div>{!analisis.valido && configuracion.formula ? <>{configuracion.formula.slice(0, analisis.error.inicio)}<mark className={analisis.error.inicio === analisis.error.fin ? 'error-insercion' : undefined}>{configuracion.formula.slice(analisis.error.inicio, analisis.error.fin)}</mark>{configuracion.formula.slice(analisis.error.fin)}</> : configuracion.formula}{'\n'}</div></div>
+                <textarea aria-label="Fórmula" ref={editor} value={configuracion.formula} onChange={evento => actualizar({ formula: evento.target.value })} onScroll={evento => { if (resaltado.current) { resaltado.current.scrollTop = evento.currentTarget.scrollTop; resaltado.current.scrollLeft = evento.currentTarget.scrollLeft; } }} rows={2} spellCheck={false} placeholder="∀x P(x,y)" aria-invalid={!analisis.valido} aria-describedby="estado-sintaxis" />
+              </div>
+              <div id="estado-sintaxis" aria-live="polite">{analisis.valido ? <p className="estado-valido">Fórmula {libres.length ? 'abierta' : 'cerrada'} ✓</p> : <><p className="error">{analisis.error.mensaje}</p>{configuracion.formula && <button className="enlace-error" onClick={revisarError}>Ir al error ↗</button>}</>}</div>
               <div className="teclado" aria-label="Insertar símbolo lógico">{['¬', '∧', '∨', '→', '↔', '∀', '∃', '(', ')'].map(signo => <button key={signo} onClick={() => insertar(signo)} aria-label={`Insertar ${signo}`}>{signo}</button>)}</div>
-              <div id="estado-sintaxis" aria-live="polite">{analisis.valido ? <p className="nota-lapiz">Fórmula {libres.length ? 'abierta' : 'cerrada'} ✓</p> : <><p className="error">{analisis.error.mensaje} Posición {analisis.error.inicio + 1}.</p><button className="enlace-error" onClick={revisarError}>Revisar error ↗</button></>}</div>
+              {configuracion.simbolos.length > 0 && <div className="sugerencias"><p>Símbolos disponibles · pulsa para insertar</p><div>{configuracion.simbolos.map(elemento => <button key={elemento.nombre} type="button" onClick={() => insertarSimbolo(elemento)} title={`${elemento.tipo}, aridad ${elemento.aridad}`}>{elemento.nombre}{elemento.aridad > 0 ? '( )' : ''} <small>/{elemento.aridad}</small></button>)}</div></div>}
+              {configuracion.simbolos.some(elemento => elemento.tipo === 'predicado') && <details className="ejemplos"><summary>Ejemplos con tu lenguaje</summary><p className="ayuda">Pulsa un ejemplo para reemplazar la fórmula actual.</p>{configuracion.simbolos.filter(elemento => elemento.tipo === 'predicado').map(elemento => {
+                if (elemento.aridad > 10) return <p className="ayuda" key={elemento.nombre}>{elemento.nombre}: aridad {elemento.aridad}, escribe sus argumentos manualmente.</p>;
+                const argumentos = Array.from({ length: elemento.aridad }, (_, i) => `x${i + 1}`);
+                const atomica = elemento.aridad ? `${elemento.nombre}(${argumentos.join(',')})` : elemento.nombre;
+                const ejemplo = argumentos.map(variable => `∀${variable} `).join('') + atomica;
+                return <button type="button" key={elemento.nombre} onClick={() => actualizar({ formula: ejemplo })}>{ejemplo}</button>;
+              })}</details>}
               <details className="ayuda-sintaxis"><summary>Sintaxis</summary><p className="ayuda">Precedencia: ¬, ∀, ∃; ∧; ∨; →; ↔. Usa paréntesis para agrupar. → asocia por la derecha. Teclado: -&gt; y &lt;-&gt;.</p></details>
               <h2 className="titulo-entorno">Entorno</h2>
               {analisis.valido ? libres.length ? <><div className="variables-libres">{libres.map(nombreVariable => <label key={nombreVariable}>{nombreVariable} ∈ D<select aria-label={`Valor de ${nombreVariable}`} value={Object.hasOwn(configuracion.entorno, nombreVariable) ? configuracion.entorno[nombreVariable] : ''} onChange={evento => asignarVariable(nombreVariable, evento.target.value)}><option value="">Sin asignar</option>{configuracion.dominio.map(elemento => <option key={elemento}>{elemento}</option>)}</select></label>)}</div><p className="ayuda" aria-live="polite">{faltantes.length ? `Falta asignar: ${faltantes.join(', ')}.` : 'Entorno completo ✓'}</p></> : <p className="nota-lapiz">Sin variables libres.</p> : null}
