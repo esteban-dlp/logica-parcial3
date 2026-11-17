@@ -4,6 +4,8 @@ import { cambiarDominio, errorSimbolo, leerDominio, recuperarConfiguracion, tupl
 import type { Configuracion, Simbolo } from './modelo';
 import { analizarFormula } from './analizador';
 import type { Formula, Termino } from './analizador';
+import { evaluarFormula } from './evaluador';
+import type { PasoEvaluacion, ResultadoEvaluacion } from './evaluador';
 
 const claveGuardado = 'cuaderno-logica-v1';
 const capitulos = ['Lenguaje', 'Interpretación', 'Evaluación'];
@@ -26,6 +28,10 @@ function Rama({ nodo }: { nodo: Formula | Termino }) {
   return <li><span>{etiqueta}</span>{hijos.length > 0 && <ul>{hijos.map((hijo, indice) => <Rama key={indice} nodo={hijo} />)}</ul>}</li>;
 }
 
+function DetallePaso({ paso, nivel = 0 }: { paso: PasoEvaluacion; nivel?: number }) {
+  return <li><details open={nivel === 0}><summary>{paso.expresion} · {paso.valor ? 'Verdadero' : 'Falso'}</summary><p>{paso.razon}</p>{paso.hijos.length > 0 && <ol>{paso.hijos.map((hijo, indice) => <DetallePaso key={indice} paso={hijo} nivel={nivel + 1} />)}</ol>}</details></li>;
+}
+
 export default function Cuaderno() {
   const [configuracion, fijarConfiguracion] = useState(() => recuperarConfiguracion(leerGuardado(claveGuardado)));
   const [oscuro, fijarOscuro] = useState(() => leerGuardado('cuaderno-tema') === 'oscuro');
@@ -43,6 +49,7 @@ export default function Cuaderno() {
   const [variable, fijarVariable] = useState('');
   const [valor, fijarValor] = useState(configuracion.dominio[0]);
   const [errorEntorno, fijarErrorEntorno] = useState('');
+  const [evaluacion, fijarEvaluacion] = useState<{ entrada: Configuracion; resultado: ResultadoEvaluacion } | null>(null);
   const editor = useRef<HTMLTextAreaElement>(null);
   const errores = validarConfiguracion(configuracion);
   const simbolo = configuracion.simbolos.find(elemento => elemento.nombre === seleccion) || configuracion.simbolos[0];
@@ -52,6 +59,8 @@ export default function Cuaderno() {
   const analisis = useMemo(() => analizarFormula(configuracion.formula, configuracion.simbolos), [configuracion.formula, configuracion.simbolos]);
   const libres = analisis.valido ? analisis.variablesLibres : [];
   const faltantes = libres.filter(nombreVariable => !Object.hasOwn(configuracion.entorno, nombreVariable) || !configuracion.dominio.includes(configuracion.entorno[nombreVariable]));
+  const puedeEvaluar = analisis.valido && !errores.length && !faltantes.length;
+  const resultado = evaluacion?.entrada === configuracion ? evaluacion.resultado : null;
 
   useEffect(() => {
     try {
@@ -236,12 +245,21 @@ export default function Cuaderno() {
             </>}
 
             {capitulo === 2 && <>
-              <p className="anotacion">El análisis</p><h2 className="titulo-grande">{analisis.valido ? <>La pregunta está<br />bien escrita.</> : <>Revisemos<br />la pregunta.</>}</h2>
-              {analisis.valido ? <><p className="manuscrito">{libres.length ? `Variables libres: ${libres.join(', ')}.` : 'Todas las variables están ligadas.'}<br />La estructura está lista.</p><details className="arbol-sintactico"><summary>Ver árbol sintáctico</summary><ul aria-label="Árbol sintáctico"><Rama nodo={analisis.arbol} /></ul></details></> : <p className="manuscrito">Corrige el error de la otra página.<br />Después veremos su estructura.</p>}
-              <div className="recuadro-manual"><p>{errores.length ? 'Tu interpretación tiene datos pendientes.' : 'Tu interpretación está completa. ✓'}</p></div>
+              <p className="anotacion">{resultado?.valido ? 'La comprobación' : 'El análisis'}</p>
+              <div aria-live="polite">{resultado?.valido ? <>
+                <div className="veredicto"><h2>{resultado.paso.valor ? 'Verdadero' : 'Falso'}</h2><span aria-hidden="true">{resultado.paso.valor ? '✓' : '×'}</span></div>
+                <p className="razon-principal">{resultado.paso.razon}</p>
+                {resultado.paso.hijos.length > 0 && <ol className="pasos-evaluacion" aria-label="Pasos de la comprobación">{resultado.paso.hijos.map((paso, indice) => <DetallePaso key={indice} paso={paso} />)}</ol>}
+              </> : <>
+                <h2 className="titulo-grande">{analisis.valido ? <>La pregunta está<br />bien escrita.</> : <>Revisemos<br />la pregunta.</>}</h2>
+                <p className="manuscrito">{analisis.valido ? libres.length ? `Variables libres: ${libres.join(', ')}.` : 'Todas las variables están ligadas.' : 'Corrige el error de la otra página.'}</p>
+                {resultado && !resultado.valido && <ul className="error" role="alert">{resultado.errores.map((error, indice) => <li key={indice}>{error}</li>)}</ul>}
+              </>}</div>
+              {analisis.valido && <details className="arbol-sintactico"><summary>Ver árbol sintáctico</summary><ul aria-label="Árbol sintáctico"><Rama nodo={analisis.arbol} /></ul></details>}
+              {!resultado?.valido && <div className="recuadro-manual"><p>{errores.length ? 'Tu interpretación tiene datos pendientes.' : 'Tu interpretación está completa. ✓'}</p></div>}
               {analisis.valido && faltantes.length > 0 && <p className="ayuda">Antes de evaluar, falta asignar: {faltantes.join(', ')}.</p>}
-              <button className="boton-tinta" disabled aria-describedby="estado-evaluacion">Comprobar →</button>
-              <p className="ayuda" id="estado-evaluacion">La fórmula ya puede analizarse. El valor de verdad y su explicación estarán disponibles al integrar el evaluador de la parte 3.</p>
+              <button className="boton-tinta comprobar" disabled={!puedeEvaluar} aria-describedby="estado-evaluacion" onClick={() => fijarEvaluacion({ entrada: configuracion, resultado: evaluarFormula(configuracion) })}>Comprobar →</button>
+              <p className="ayuda" id="estado-evaluacion">{!analisis.valido ? 'Corrige la sintaxis antes de evaluar.' : errores.length ? 'Completa o corrige los datos en Interpretación antes de evaluar.' : faltantes.length ? 'Asigna un valor a todas las variables libres antes de evaluar.' : 'Evalúa la fórmula con el modelo y las asignaciones actuales.'}</p>
             </>}
 
             <span className="numero-pagina">{capitulo * 2 + 2}</span>
@@ -250,7 +268,7 @@ export default function Cuaderno() {
       </main>
 
       <nav className="cambio-pagina" aria-label="Cambiar páginas"><button disabled={capitulo === 0} onClick={() => fijarCapitulo(capitulo - 1)}>← Anterior</button><span aria-live="polite">Páginas {capitulo * 2 + 1}–{capitulo * 2 + 2} de 6</span><button disabled={capitulo === 2} onClick={() => fijarCapitulo(capitulo + 1)}>Siguiente →</button></nav>
-      <footer>{guardado ? 'Guardado en este navegador' : 'No se pudo guardar en este navegador. Mantén abierta la página para conservar tus cambios.'}<span>Interfaz y análisis · Partes 1 y 2 de 3</span></footer>
+      <footer>{guardado ? 'Guardado en este navegador' : 'No se pudo guardar en este navegador. Mantén abierta la página para conservar tus cambios.'}<span>Lenguaje, interpretación y evaluación · MM3032</span></footer>
     </div>
   );
 }

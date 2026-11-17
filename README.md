@@ -1,6 +1,6 @@
 # Mi cuaderno de lógica
 
-Partes 1 y 2 del proyecto MM3032: interfaz, configuración y análisis sintáctico. React, TypeScript y CSS, ejecutados con Vite. La evaluación semántica corresponde a la parte 3 y todavía no está implementada.
+Proyecto MM3032: interfaz, configuración, análisis sintáctico y evaluación semántica. React, TypeScript y CSS, ejecutados con Vite.
 
 ## Ejecutar
 
@@ -29,6 +29,8 @@ npm run build
 - Editor de fórmulas con botones de símbolos y edición por teclado.
 - Análisis al escribir, comprobación de símbolos y aridades, errores con posición y árbol sintáctico desplegable.
 - Detección de variables libres y selección de sus valores en el dominio. Se conservan las asignaciones manuales en «Otras asignaciones».
+- Evaluación de términos, funciones anidadas, predicados, conectivos y cuantificadores con explicaciones desplegables.
+- Testigos para existenciales verdaderos, contraejemplos para universales falsos y comprobación completa para universales verdaderos y existenciales falsos.
 - Guardado automático de la configuración y el tema en este navegador. El almacenamiento puede ser eliminado por el usuario o por el navegador.
 
 Se carga un modelo de ejemplo al abrir por primera vez. Las fuentes manuscritas se descargan de Google Fonts; si no hay conexión, se utiliza la fuente cursiva disponible en el sistema.
@@ -47,7 +49,13 @@ Se carga un modelo de ejemplo al abrir por primera vez. Las fuentes manuscritas 
 
 El árbol usa los tipos exportados `Formula` y `Termino`. Sus nodos distinguen predicados, funciones, variables, negación, conectivos y cuantificadores. Las funciones de aridad cero representan constantes. `obtenerVariablesLibres(arbol)` también está disponible por separado.
 
-La parte 3 debe evaluar el árbol con la interpretación y el entorno y devolver un resultado con su justificación. Debe comprobar primero `validarConfiguracion(configuracion)` y que todas las variables libres tengan una asignación válida. El botón «Comprobar» permanece deshabilitado hasta esa integración: una fórmula bien escrita todavía no recibe un valor de verdad.
+`src/evaluador.ts` exporta `evaluarFormula(configuracion)`. Primero analiza la fórmula, valida toda la interpretación y comprueba que las variables libres tengan valores válidos. Después evalúa el árbol sin modificar la configuración. Devuelve `{ valido: true, paso }` o `{ valido: false, errores }`. Una entrada incorrecta no recibe un valor de verdad.
+
+Cada `PasoEvaluacion` contiene `expresion`, `valor`, `razon` e `hijos`. Los predicados explican las sustituciones y la pertenencia a la relación. Los cuantificadores conservan un entorno independiente por caso, respetando la sombra de variables. La evaluación se detiene al encontrar un testigo existencial o un contraejemplo universal; los otros dos resultados recorren el dominio completo. Conjunción, disyunción e implicación omiten la derecha cuando la izquierda ya determina la respuesta; la explicación lo indica.
+
+«Comprobar» se habilita únicamente cuando la sintaxis, el modelo y las asignaciones están completos. El resultado se retira al modificar cualquier dato de la configuración. Cambiar de capítulo o de tema conserva la comprobación actual, pero los resultados no se guardan entre recargas.
+
+Para mantener la aplicación local manejable, cada evaluación admite hasta 10000 visitas a fórmulas y términos. Si supera ese límite o la profundidad de recursión disponible, muestra un error sin resultado parcial ni valor de verdad. Reduce el dominio o la complejidad de la fórmula para continuar.
 
 ## Sintaxis admitida
 

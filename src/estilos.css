@@ -130,6 +130,16 @@ h1, .titulo-grande { font: 600 43px/1.02 'Caveat', cursive; letter-spacing: -.6p
 .arbol-sintactico ul ul { border-left: 1px solid var(--lapiz); }
 .arbol-sintactico li { padding-left: 9px; overflow-wrap: anywhere; }
 .arbol-sintactico li > span { background: var(--papel); }
+.veredicto { display: flex; align-items: center; gap: 18px; margin: 20px 0 27px; }
+.veredicto h2 { font: 600 43px/1.1 'Caveat', cursive; border: 2px solid var(--rojo); border-radius: 53% 46% 54% 43%; padding: 6px 20px 10px; transform: rotate(-3deg); }
+.veredicto > span { color: var(--rojo); font: 40px 'Caveat', cursive; }
+.razon-principal { font: 25px/1.3 'Caveat', cursive; overflow-wrap: anywhere; }
+.pasos-evaluacion, .pasos-evaluacion ol { list-style: none; padding: 0; margin: 21px 0; }
+.pasos-evaluacion ol { border-left: 1px solid var(--lapiz); padding-left: 14px; margin: 10px 0; }
+.pasos-evaluacion li { margin: 15px 0; min-width: 0; overflow-wrap: anywhere; }
+.pasos-evaluacion summary { font: 23px/1.3 'Caveat', cursive; }
+.pasos-evaluacion p { font: 12px/1.7 system-ui, sans-serif; color: var(--lapiz); margin-top: 9px; }
+.comprobar { margin-top: 25px; }
 .resultado-pendiente { display: flex; gap: 22px; align-items: center; margin: 35px 0; font: 27px/1.2 'Caveat', cursive; color: var(--lapiz); }
 .resultado-pendiente > span { font-size: 55px; }
 .cambio-pagina { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 25px; font: 24px 'Caveat', cursive; }

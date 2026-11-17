@@ -48,7 +48,7 @@ export function tuplaEn(dominio: string[], aridad: number, indice: number): stri
 function entradaValida(clave: string, valor: unknown, simbolo: Simbolo, dominio: string[]): boolean {
   try {
     const tupla: unknown = JSON.parse(clave);
-    return Array.isArray(tupla) && tupla.length === simbolo.aridad
+    return Array.isArray(tupla) && JSON.stringify(tupla) === clave && tupla.length === simbolo.aridad
       && tupla.every(elemento => dominio.includes(elemento))
       && (simbolo.tipo === 'funcion' ? typeof valor === 'string' && dominio.includes(valor) : valor === true);
   } catch { return false; }
@@ -69,6 +69,7 @@ export function cambiarDominio(configuracion: Configuracion, dominio: string[]):
 export function validarConfiguracion(configuracion: Configuracion): string[] {
   const errores: string[] = [];
   if (!configuracion.dominio.length) errores.push('El dominio no puede estar vacío.');
+  if (configuracion.dominio.some(elemento => !elemento.trim())) errores.push('El dominio contiene elementos vacíos.');
   if (new Set(configuracion.dominio).size !== configuracion.dominio.length) errores.push('El dominio contiene elementos repetidos.');
   configuracion.simbolos.forEach((simbolo, indice) => {
     const error = errorSimbolo(simbolo.nombre, simbolo.aridad, configuracion.simbolos.slice(0, indice));
